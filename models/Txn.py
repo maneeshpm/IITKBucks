@@ -79,12 +79,16 @@ class Txn:
         return sumOutput
 
     def ifInpInUnusedOP(self, inp, unusedOP):
-        pass
+        #assuming ususedOP is a dictionary of form { (txnID, OPindex) : output object}
+        if (inp.txnID, inp.opIndex) in unusedOP:
+            return True
+        return False
 
-    def verifySign(self, publicKey, toSign, sign):
+    def verifySign(self, inp, ophash, publicKey):
+        toSign = inp.txnID + int.to_bytes(inp.opIndex) + ophash
         verifier = PKCS1_PSS.new(publicKey)
         h = SHA256.new(toSign)
-        if verifier.verify(h, sign):
+        if verifier.verify(h, inp.sign):
             return True
         return False
     
@@ -97,15 +101,13 @@ class Txn:
         for inp in self.totInput:
             if not self.ifInpInUnusedOP(inp, unusedOP):
                 return False
-            output = None
+            output = unusedOP[(inp.TxnID, inp.opIndex)]
             sumInp += output.noCoins
             
-            toSign = inp.txnID + int.to_bytes(inp.opIndex) + ophash
-            publicKey = output.publicKey
-            if not self.verifySign(publicKey, toSign, inp.sign):
+            if not self.verifySign(inp, ophash, output.publicKey):
                 return False
+        
+        if sumOutput > sumInp:
+            return False
             
-            if sumOutput < sumInp:
-                return False
-            
-            return True 
+        return True 
