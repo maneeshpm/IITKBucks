@@ -2,7 +2,7 @@ import hashlib
 import time
 import struct
 
-class block:
+class Block:
     def setBodyHash(self):
         h = hashlib.sha256()
         h.update(self.body)

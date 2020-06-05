@@ -1,41 +1,9 @@
 import hashlib
-
-class Inp:
-    def __init__(self, txnID, opIndex, sign):
-        self.txnID = txnID
-        self.opIndex = opIndex
-        self.sign = sign
-        self.lenSign = len(self.sign)
-
-    def getBinaryInput(self):
-        return ((self.txnID)
-        +(self.opIndex.to_bytes(4, byteorder = 'big'))
-        +(self.lenSign.to_bytes(4, byteorder = 'big'))
-        +(self.sign))
-    
-    def __str__(self):
-        pr = ("\t\tTransaction ID: {}\n".format(self.txnID.hex())
-        +"\t\tIndex: {}\n".format(self.opIndex)
-        +"\t\tLength of signature: {}\n".format(self.lenSign)
-        +"\t\tSignature: {}\n".format(self.sign.hex()))
-        return pr          
-
-class Output:
-    def __init__(self, noCoins, pubKey):
-        self.noCoins = noCoins
-        self.pubKey = pubKey
-        self. lenPubKey = len(self.pubKey)
-
-    def getBinaryOutput(self):
-        return (self.noCoins.to_bytes(8, byteorder = 'big')
-        +self.lenPubKey.to_bytes(4,byteorder = 'big')
-        +self.pubKey)
-
-    def __str__(self):
-        pr = ("\t\tNumber of coins: {}\n".format(self.noCoins)
-        +"\t\tLength of public key: {}\n".format(self.lenPubKey)
-        +"\t\tPublic key: {}\n".format(self.pubKey.decode()))
-        return pr
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_PSS
+from Crypto.Hash import SHA256
+from Inp import Inp
+from Output import Output
 
 class Txn:
     totInput=[]
@@ -49,10 +17,10 @@ class Txn:
     def getTxnData(self):
         data = self.noInputs.to_bytes(4, byteorder = 'big')
         for inps in self.totInput:
-            data += inps.getBinaryInput()
+            data += inps.getInputBytes()
         data += (self.noOutputs.to_bytes(4, byteorder = 'big'))
         for ops in self.totOutput:
-            data += (ops.getBinaryOutput())
+            data += (ops.getOutputBytes())
         return data
 
     def getTxnHash(self):
@@ -95,3 +63,49 @@ class Txn:
                 pubKey = txnFile.read(lenPubKey)
                 op = Output(noCoins, pubKey)
                 self.totOutput.append(op)
+
+    def getOutputHash(self):
+        data = b''
+        for output in self.totOutput:
+            data=data+output.getOutputBytes()
+        h = hashlib.sha256()
+        h.update(data)
+        return h.digest()
+
+    def getOutputCoins(self):
+        sumOutput = 0
+        for output in self.totOutput:
+            sumOutput += output.noCoins
+        return sumOutput
+
+    def ifInpInUnusedOP(self, inp, unusedOP):
+        pass
+
+    def verifySign(self, publicKey, toSign, sign):
+        verifier = PKCS1_PSS.new(publicKey)
+        h = SHA256.new(toSign)
+        if verifier.verify(h, sign):
+            return True
+        return False
+    
+    def verifyTxn(self, unusedOP):
+        ophash = self.getOutputHash()
+
+        sumInp = 0
+        sumOutput = self.getOutputCoins()
+
+        for inp in self.totInput:
+            if not self.ifInpInUnusedOP(inp, unusedOP):
+                return False
+            output = None
+            sumInp += output.noCoins
+            
+            toSign = inp.txnID + int.to_bytes(inp.opIndex) + ophash
+            publicKey = output.publicKey
+            if not self.verifySign(publicKey, toSign, inp.sign):
+                return False
+            
+            if sumOutput < sumInp:
+                return False
+            
+            return True 
