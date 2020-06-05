@@ -1,25 +1,63 @@
-import datetime
 import hashlib
-import json
+import time
+import struct
 
 class block:
-    index = 0
-    timestamp = datetime.datetime.now()
-    data = None
-    parentHash = 0x0
-    nonce = 0
-
-    def __init__(self, index, data, prevHash):
-        self.index = index
-        self.data = data
-        self.parentHash = prevHash
-        self.nonce = 0
-    
-    def hashf(self):
+    def setBodyHash(self):
         h = hashlib.sha256()
-        s = json.dumps(self, default=lambda x: x.__dict__)
-        h.update(s.encode('utf-8'))
+        h.update(self.body)
+        self.bodyHash = bytes.fromhex(h.hexdigest())
+
+    def getHeader(self):
+        data = (self.index.to_bytes(4,'big')
+        + self.parentHash
+        + self.bodyHash
+        + self.target.to_bytes(32,'big')
+        + bytearray(struct.pack('f',self.timestamp))
+        + self.nonce.to_bytes(8,'big'))
+
+        return data
+
+    def getHeaderHash(self):
+        h = hashlib.sha256()
+        h.update(self.getHeader())
         return h.hexdigest()
+
+    def setNonce(self):
+        maxnonce = 2**64
+        print("Finding nonce... ")
+        t1 = time.perf_counter()
+        for i in range(maxnonce):
+            self.nonce = i
+            self.timestamp = time.time_ns()
+            if int(self.getHeaderHash(),16) <= self.target:
+                break
+        t2 = time.perf_counter()
+        print("Nonce found!\nNonce = {}, Timestamp={:0.6f}, Hash={}".format(self.nonce, self.timestamp, self.getHeaderHash()))
+        print("Time elapsed = {}m {}s".format(int((t2-t1)/60), int((t2-t1))%60))
+            
+
+
+    def __init__(self, index, parentHash, body, target):
+        self.index = index
+        self.parentHash = parentHash
+        self.bodyHash = None
+        self.target = target
+        self.timestamp = None
+        self.nonce = None
+        
+        self.body = body
+        self.header = None
+
+        self.setBodyHash()
+
+        self.setNonce()
+
+
+
+
+
+        
     
-
-
+    
+        
