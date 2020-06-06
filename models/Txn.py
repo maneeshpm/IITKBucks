@@ -101,7 +101,7 @@ class Txn:
         for inp in self.totInput:
             if not self.ifInpInUnusedOP(inp, unusedOP):
                 return False
-            output = unusedOP[(inp.TxnID, inp.opIndex)]
+            output = unusedOP[(inp.txnID, inp.opIndex)]
             sumInp += output.noCoins
             
             if not self.verifySign(inp, ophash, output.publicKey):
