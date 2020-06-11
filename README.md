@@ -26,7 +26,7 @@ Contains the IITKBucks client
         },
         ...
     ]
-}
+  }
   ```
 
 - Added function `verifyTxn()` to the `txn` class. It performs three tasks:
