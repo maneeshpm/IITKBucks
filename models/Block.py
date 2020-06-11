@@ -36,6 +36,8 @@ class Block:
         print("Nonce found!\nNonce = {}, Timestamp={:0.6f}, Hash={}".format(self.nonce, self.timestamp, self.getHeaderHash()))
         print("Time elapsed = {}m {}s".format(int((t2-t1)/60), int((t2-t1))%60))
             
+    def getByteStream(self):
+        return self.header + self.body
 
 
     def __init__(self, index, parentHash, body, target):
