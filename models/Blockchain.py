@@ -20,3 +20,10 @@ class Blockchain:
 
     def isBlockValid(self, block):
         pass
+
+    def getPendingTxnJSON(self):
+        pendingTxnList = []
+        for txn in self.pendingTxn:
+            pendingTxnList.append(txn.getTxnJSON())
+
+        return pendingTxnList
