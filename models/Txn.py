@@ -111,3 +111,25 @@ class Txn:
             return False
             
         return True 
+
+    def getTxnJSON(self):
+        data = {}
+        valInputs = []
+        for inp in self.totInput:
+            rawInp = {}
+            rawInp["transactionID"] = inp.txnID.hex()
+            rawInp["index"] = inp.opIndex
+            rawInp["signature"] = inp.sign.hex()
+            valInputs.append(rawInp)
+        
+        valOutputs = []
+        for op in self.totOutput:
+            rawOP = {}
+            rawOP["amount"] = op.noCoins
+            rawOP["recipient"] = op.pubKey.decode()
+            valOutputs.append(rawOP)
+
+        data["inputs"] = valInputs
+        data["outputs"] = valOutputs
+
+        return data
