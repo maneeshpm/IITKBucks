@@ -4,6 +4,7 @@ from Crypto.Signature import PKCS1_PSS
 from Crypto.Hash import SHA256
 from Inp import Inp
 from Output import Output
+import json
 
 class Txn:
     totInput=[]
@@ -111,7 +112,19 @@ class Txn:
             return False
             
         return True 
-
+    
+    def makeTxnFromJSON(self, txnJSON):
+        data = json.loads(txnJSON)
+        for inputs in data["inputs"]:
+            inp = Inp(bytes.fromhex(inputs["transactionID"]),int(inputs["index"]),bytes.fromhex(inputs["signature"])) 
+            self.totInput.append(inp)
+            self.noInputs+=1
+        
+        for outputs in data["outputs"]:
+            output = Output(int(outputs["amount"]),outputs["recipient"].encode('utf-8')) 
+            self.totOutput.append(output)
+            self.noOutputs+=1
+    
     def getTxnJSON(self):
         data = {}
         valInputs = []
@@ -133,3 +146,4 @@ class Txn:
         data["outputs"] = valOutputs
 
         return data
+
