@@ -35,7 +35,9 @@ def getPeers():
 @app.route('/newBlock', methods = ['POST'])
 def newBlock():
     blockData = request.get_data()
-    blockchain.add_block(blockData)
+    block = Block()
+    block.blockFromByteArray(blockData)
+    blockchain.addBlock(blockData)
     return "Block added!"    
 
 @app.route('/newTransaction', methods = ['POST'])
