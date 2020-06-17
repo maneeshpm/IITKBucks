@@ -40,28 +40,31 @@ class Txn:
             print("\tOutput #{}:\n".format(i+1))
             print(self.totOutput[i])
     
-    def generateTxnFile(self):
-        with open(str(self.getTxnHash())+".dat",'wb') as f:
-            f.write(self.getTxnData())
-
-        print(str(self.getTxnHash())+".dat created successfully!")
-    
-    def readTxnFile(self, path):
-        with open(path, 'rb') as txnFile:
-            self.noInputs = int.from_bytes(txnFile.read(4), 'big')
-            for _ in range(self.noInputs):
-                txnID = txnFile.read(32)
-                opIndex = int.from_bytes(txnFile.read(4), 'big')
-                signLen = int.from_bytes(txnFile.read(4), 'big')
-                sign = bytes.fromhex(txnFile.read(signLen).hex())
+    def txnFromByteArray(self, data):
+        currOffset=0
+        self.noInputs = int.from_bytes(data[currOffset:currOffset+4], 'big')
+        currOffset+=4
+        for _ in range(self.noInputs):
+                txnID = data[currOffset:currOffset+32]
+                currOffset+=32
+                opIndex = int.from_bytes(data[currOffset:currOffset+4], 'big')
+                currOffset+=4
+                signLen = int.from_bytes(data[currOffset:currOffset+4], 'big')
+                currOffset+=4
+                sign = data[currOffset:currOffset+signLen]
+                currOffset+=signLen
                 inp = Inp(txnID, opIndex, sign)
                 self.totInput.append(inp)
 
-            self.noOutputs = int.from_bytes(txnFile.read(4), 'big')
-            for _ in range(self.noOutputs):
-                noCoins = int.from_bytes(txnFile.read(8), 'big')
-                lenPubKey = int.from_bytes(txnFile.read(4), 'big')
-                pubKey = txnFile.read(lenPubKey)
+        self.noOutputs = int.from_bytes(data[currOffset:currOffset+4], 'big')
+        currOffset+=4
+        for _ in range(self.noOutputs):
+                noCoins = int.from_bytes(data[currOffset:currOffset+8], 'big')
+                currOffset+=8
+                lenPubKey = int.from_bytes(data[currOffset:currOffset+4], 'big')
+                currOffset+=4
+                pubKey = data[currOffset:currOffset+lenPubKey]
+                currOffset+=lenPubKey
                 op = Output(noCoins, pubKey)
                 self.totOutput.append(op)
 
@@ -146,4 +149,3 @@ class Txn:
         data["outputs"] = valOutputs
 
         return data
-

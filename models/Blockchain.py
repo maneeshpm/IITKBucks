@@ -12,7 +12,7 @@ class Blockchain:
         #return genesis block
         pass
 
-    def add_block(self, block):
+    def addBlock(self, block):
         self.chain.append(block)
 
     def isTxnValid(self, txn):
