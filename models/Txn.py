@@ -10,6 +10,7 @@ class Txn:
     totInput=[]
     totOutput=[]
     def _init_(self):
+        self.id = None
         self.noInputs = 0
         self.noOutputs = 0
         self.totInput = []
@@ -67,6 +68,7 @@ class Txn:
                 currOffset+=lenPubKey
                 op = Output(noCoins, pubKey)
                 self.totOutput.append(op)
+        self.id = bytes.fromhex(self.getTxnHash())
 
     def getOutputHash(self):
         data = b''
@@ -116,8 +118,7 @@ class Txn:
             
         return True 
     
-    def makeTxnFromJSON(self, txnJSON):
-        data = json.loads(txnJSON)
+    def makeTxnFromJSON(self, data):
         for inputs in data["inputs"]:
             inp = Inp(bytes.fromhex(inputs["transactionID"]),int(inputs["index"]),bytes.fromhex(inputs["signature"])) 
             self.totInput.append(inp)
@@ -132,18 +133,18 @@ class Txn:
         data = {}
         valInputs = []
         for inp in self.totInput:
-            rawInp = {}
-            rawInp["transactionID"] = inp.txnID.hex()
-            rawInp["index"] = inp.opIndex
-            rawInp["signature"] = inp.sign.hex()
-            valInputs.append(rawInp)
+            curInp = {}
+            curInp["transactionID"] = inp.txnID.hex()
+            curInp["index"] = inp.opIndex
+            curInp["signature"] = inp.sign.hex()
+            valInputs.append(curInp)
         
         valOutputs = []
         for op in self.totOutput:
-            rawOP = {}
-            rawOP["amount"] = op.noCoins
-            rawOP["recipient"] = op.pubKey.decode()
-            valOutputs.append(rawOP)
+            curOP = {}
+            curOP["amount"] = op.noCoins
+            curOP["recipient"] = op.pubKey.decode()
+            valOutputs.append(curOP)
 
         data["inputs"] = valInputs
         data["outputs"] = valOutputs

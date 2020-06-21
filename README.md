@@ -2,6 +2,8 @@
 Contains the IITKBucks client
 
 ## Current Status
+- Added initialization scripts to `app.py`
+
 - Added `/newPeer`, `/getPeers`, `/newBlock`, `/newTransaction` endpoints.
   - `/newPeer` accept json post request of form `{'url':'url of the new peer'}`.
   - `/getPeers` return the peers list as json data `{'peers':[....]}`.

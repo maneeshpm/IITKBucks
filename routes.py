@@ -1,11 +1,9 @@
 from flask import Flask, jsonify, Response, request
+from app import app, blockchain, peers, peerLimit
 from models.Block import Block
-from models.Blockchain import Blockchain 
 from models.Txn import Txn
-app = Flask(__name__)
+import json
 
-blockchain = Blockchain()
-peers = []
 @app.route('/')
 def home():
     return "<h3>\"Rabbit, Fire up the server!\"</h3>Thor,<br>The strongest avenger"
@@ -25,6 +23,10 @@ def getPendingTransactions():
 @app.route('/newPeer', methods = ['POST'])
 def newPeer():
     url = request.json['url']
+    if len(peers)>=peerLimit:
+        return "Peer limit exceeded", 500
+    if url in peers:
+        return "Peer already added", 500    
     peers.append(url)
     return "URL {} added to peers.".format(url)
 
@@ -44,5 +46,5 @@ def newBlock():
 def newTransaction():
     newTxn = Txn()
     txnJSON = request.get_json()
-    newTxn.makeTxnFromJSON(txnJSON)
+    newTxn.makeTxnFromJSON(json.loads(txnJSON))
     blockchain.pendingTxn.append(newTxn)

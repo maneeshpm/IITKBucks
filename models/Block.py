@@ -52,6 +52,9 @@ class Block:
 
         return data
     
+    def export(self):
+        with open('Blocks/{}.dat'.format(self.index),'wb') as file:
+            file.write(self.blockToByteArray())
 
     """
     def setBodyHash(self):

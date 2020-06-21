@@ -1,4 +1,6 @@
-from models import Block, Txn
+from models.Block import Block
+from models.Txn import Txn
+import json
 
 class Blockchain:
     
@@ -20,6 +22,13 @@ class Blockchain:
 
     def isBlockValid(self, block):
         pass
+
+    def makePendingTxnJSON(self, JSONTxnList):
+        TxnList = json.loads(JSONTxnList)
+        for txnData in TxnList:
+            txn = Txn()
+            txn.makeTxnFromJSON(txnData)
+            self.pendingTxn.append(txn)
 
     def getPendingTxnJSON(self):
         pendingTxnList = []
