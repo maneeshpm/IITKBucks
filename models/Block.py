@@ -34,27 +34,63 @@ class Block:
     def blockFromByteArray(self, data):
         self.index = int.from_bytes(data[:4])
         self.parentHash = data[4:36]
-        self.blockHash = data[36:68]
+        self.blockBodyHash = data[36:68]
         self.target = data[68:100]
         self.timestamp = int.from_bytes(data[100:108])
         self.nonce = int.from_bytes(data[108:116])
         self.body = data[116:]
         self.txns = self.txnListFromByteArray(data[116:])
 
-    def blockToByteArray(self):
-        data = (self.index.to_bytes(4,'big')
+    def getHeader(self):
+        header = (self.index.to_bytes(4,'big')
         + self.parentHash
-        + self.blockHash
+        + self.blockBodyHash
         + self.target.to_bytes(32,'big')
         + self.timestamp.to_bytes(8,'big')
-        + self.nonce.to_bytes(8,'big')
-        + self.body)
+        + self.nonce.to_bytes(8,'big'))
+        return header
+    
+    def getHeaderHash(self):
+        h = hashlib.sha256()
+        h.update(self.getHeader())
+        return h.digest()
 
+    def blockToByteArray(self):
+        data = (self.getHeader()
+        + self.body)
         return data
     
     def export(self):
         with open('Blocks/{}.dat'.format(self.index),'wb') as file:
             file.write(self.blockToByteArray())
+
+    def verifyNonce(self):
+        if int.from_bytes(self.getHeaderHash()) <= self.target:
+            return True
+        else:
+            print("Nonce verification failed!")
+            return False
+    
+    def verifyTxns(self):
+        self.txns = self.txnListFromByteArray(self.body)
+        for txn in txns:
+            if txn.verifyTxn == False:
+                print("txn verification failed!")
+                return False
+        return True
+
+    def verifyHeader(self):
+        pass
+
+    def verifyBlock(self):
+        if self.verifyTxns() == False:
+            return False
+        if self.verifyHeader() == False:
+            return False
+        if self.verifyNonce() == False:
+            return False
+        return True
+        
 
     """
     def setBodyHash(self):
