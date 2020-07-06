@@ -15,6 +15,7 @@ peers = []
 peerLimit = 5
 myNode = '127.0.0.1:8080'
 genesisURL = ''
+myPubKey = ''
 
 @app.route('/')
 def home():
@@ -52,6 +53,8 @@ def newBlock():
     block.blockFromByteArray(request.get_data())
     if not blockchain.isBlockValid(block):
         return "Invalid Block", 404
+    mineHandler.set()
+    mine()
     blockchain.processBlock(block)
     blockchain.addBlock(block)
     
@@ -63,8 +66,40 @@ def newTransaction():
     newTxn.makeTxnFromJSON(json.loads(request.get_json()))
     blockchain.addPendingTxn(newTxn)
 
+def minedBlockHandler(block):
+    pass #TODO
+
+mineHandler = Event()
+minedBlock = None
+def startMining(block):
+    global mineHandler
+    global minedBlock
+    i = 0
+    
+    while not mineHandler.isSet():
+        block.nonce = i
+        block.timeStamp = time.perf_counter_ns()
+        if int.from_bytes(block.getHeaderHash(), 'big') <= block.target:
+            minedBlock = block
+            break
+        i += 1
+
+    if minedBlock:
+        minedBlockHandler(minedBlock)
+        print("Block Mined")
+    else:
+        print("interrupted")
+
+
+def mine():
+    minedBlock = None
+    mineHandler = Event()
+    blockToMine = blockchain.getBlockToMine(myPubKey)
+    worker = Thread(target=startMining, args=(blockToMine,)) 
+    worker.start()   
 
 
 if __name__ == '__main__':
     app.run(debug = True, port = 8787)
     peers = blockchain.initializeBlockchain(genesisURL, myNode)    
+    mine()

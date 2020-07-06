@@ -2,8 +2,8 @@ import hashlib
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Hash import SHA256
-from Inp import Inp
-from Output import Output
+from models.Inp import Inp
+from models.Output import Output
 import json
 
 class Txn:
