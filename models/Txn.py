@@ -7,8 +7,6 @@ from Output import Output
 import json
 
 class Txn:
-    totInput=[]
-    totOutput=[]
     def _init_(self):
         self.id = None
         self.noInputs = 0
@@ -16,7 +14,7 @@ class Txn:
         self.totInput = []
         self.totOutput = []
 
-    def getTxnData(self):
+    def txnToByteArray(self):
         data = self.noInputs.to_bytes(4, byteorder = 'big')
         for inps in self.totInput:
             data += inps.getInputBytes()
@@ -26,20 +24,7 @@ class Txn:
         return data
 
     def getTxnHash(self):
-        h = hashlib.sha256()
-        h.update(self.getTxnData())
-        return h.hexdigest()
-    
-    def getTxnDetails(self):
-        print("Transaction ID: {}\n".format(self.getTxnHash()))
-        print("\nNumber of inputs: {}\n".format(self.noInputs))
-        for i in range(self.noInputs):
-            print("\tInput #{}:\n".format(i+1))
-            print(self.totInput[i])
-        print("\nNumber of outputs: {}\n".format(self.noOutputs))
-        for i in range(self.noOutputs):
-            print("\tOutput #{}:\n".format(i+1))
-            print(self.totOutput[i])
+        return hashlib.sha256(self.txnToByteArray()).digest()
     
     def txnFromByteArray(self, data):
         currOffset=0
@@ -73,61 +58,25 @@ class Txn:
     def getOutputHash(self):
         data = b''
         for output in self.totOutput:
-            data=data+output.getOutputBytes()
-        h = hashlib.sha256()
-        h.update(data)
-        return h.digest()
-
+            data += output.getOutputBytes()
+        return hashlib.sha256(data).digest()
+        
     def getOutputCoins(self):
         sumOutput = 0
         for output in self.totOutput:
             sumOutput += output.noCoins
         return sumOutput
 
-    def ifInpInUnusedOP(self, inp, unusedOP):
-        #assuming ususedOP is a dictionary of form { (txnID, OPindex) : output object}
-        if (inp.txnID, inp.opIndex) in unusedOP:
-            return True
-        return False
-
-    def verifySign(self, inp, ophash, publicKey):
-        toSign = inp.txnID + int.to_bytes(inp.opIndex) + ophash
-        verifier = PKCS1_PSS.new(publicKey)
-        h = SHA256.new(toSign)
-        if verifier.verify(h, inp.sign):
-            return True
-        return False
-    
-    def verifyTxn(self, unusedOP):
-        ophash = self.getOutputHash()
-
-        sumInp = 0
-        sumOutput = self.getOutputCoins()
-
-        for inp in self.totInput:
-            if not self.ifInpInUnusedOP(inp, unusedOP):
-                return False
-            output = unusedOP[(inp.txnID, inp.opIndex)]
-            sumInp += output.noCoins
-            
-            if not self.verifySign(inp, ophash, output.publicKey):
-                return False
-        
-        if sumOutput > sumInp:
-            return False
-            
-        return True 
-    
     def makeTxnFromJSON(self, data):
         for inputs in data["inputs"]:
             inp = Inp(bytes.fromhex(inputs["transactionID"]),int(inputs["index"]),bytes.fromhex(inputs["signature"])) 
             self.totInput.append(inp)
-            self.noInputs+=1
+            self.noInputs += 1
         
         for outputs in data["outputs"]:
             output = Output(int(outputs["amount"]),outputs["recipient"].encode('utf-8')) 
             self.totOutput.append(output)
-            self.noOutputs+=1
+            self.noOutputs += 1
     
     def getTxnJSON(self):
         data = {}
@@ -150,3 +99,22 @@ class Txn:
         data["outputs"] = valOutputs
 
         return data
+
+    def makeCoinBaseTxn(self, output):
+        self.noInputs = 0
+        self.noOutputs = 1
+        self.totInput = []
+        self.totOutput.append(output)
+
+    # View Details
+    def getTxnDetails(self):
+        print("Transaction ID: {}\n".format(self.getTxnHash()))
+        print("\nNumber of inputs: {}\n".format(self.noInputs))
+        for i in range(self.noInputs):
+            print("\tInput #{}:\n".format(i+1))
+            print(self.totInput[i])
+        print("\nNumber of outputs: {}\n".format(self.noOutputs))
+        for i in range(self.noOutputs):
+            print("\tOutput #{}:\n".format(i+1))
+            print(self.totOutput[i])
+     

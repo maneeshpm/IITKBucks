@@ -16,6 +16,8 @@ class Block:
         self.parentHash = parentHash
         self.target = target
         self.nonce = nonce 
+        self.body = None
+        self.blockBodyHash = None
         
     def txnListFromByteArray(self, data):
         txns = []
@@ -42,6 +44,11 @@ class Block:
         self.txns = self.txnListFromByteArray(data[116:])
 
     def getHeader(self):
+        if self.body == None:
+            self.body = self.txnListToByteArray
+        if self.blockBodyHash == None:
+            self.blockBodyHash = self.getBodyHash
+
         header = (self.index.to_bytes(4,'big')
         + self.parentHash
         + self.blockBodyHash
@@ -51,46 +58,41 @@ class Block:
         return header
     
     def getHeaderHash(self):
-        h = hashlib.sha256()
-        h.update(self.getHeader())
-        return h.digest()
+        return hashlib.sha256(self.getHeader()).digest()
+    
+    def getBodyHash(self):
+        return hashlib.sha256(self.body).digest()
 
     def blockToByteArray(self):
         data = (self.getHeader()
         + self.body)
         return data
+
+    def txnListToByteArray(self):
+        data = b''
+        for txn in self.txns:
+            data += txn.txnToByteArray()
+        self.body = data
+        return data
     
     def export(self):
-        with open('Blocks/{}.dat'.format(self.index),'wb') as file:
+        with open('blockchain/blocks/{}.dat'.format(self.index),'wb') as file:
             file.write(self.blockToByteArray())
 
-    def verifyNonce(self):
-        if int.from_bytes(self.getHeaderHash()) <= self.target:
-            return True
-        else:
-            print("Nonce verification failed!")
-            return False
-    
-    def verifyTxns(self):
-        self.txns = self.txnListFromByteArray(self.body)
-        for txn in txns:
-            if txn.verifyTxn == False:
-                print("txn verification failed!")
-                return False
-        return True
 
-    def verifyHeader(self):
-        pass
-
-    def verifyBlock(self):
-        if self.verifyTxns() == False:
-            return False
-        if self.verifyHeader() == False:
-            return False
-        if self.verifyNonce() == False:
-            return False
-        return True
+    # def mine(self):
         
+    #     maxNonce = 2**64
+    #     print("Mining block")
+
+    #     for i in range(maxNonce):
+    #         self.nonce = i
+    #         self.timestamp = time.perf_counter_ns()
+    #         if int.from_bytes(self.getHeaderHash(), 'big') <= self.target:
+    #             print("Nonce Found!")
+    #             return True
+    
+
 
     """
     def setBodyHash(self):
