@@ -6,6 +6,7 @@ import hashlib
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Hash import SHA256
 import requests
+import time
 
 class Blockchain:
     
@@ -149,7 +150,10 @@ class Blockchain:
         parentHash = self.chain[-1].parentHash
         txnToMine = []
 
-        while cur < len(self.pendingTxn):
+        while not len(self.pendingTxn) > 0:
+            time.sleep(1)
+
+        while cur < len(self.pendingTxn) :
             maxSize += len(self.pendingTxn[cur].txnToByteArray())
             if maxSize > 1000116:
                 break
