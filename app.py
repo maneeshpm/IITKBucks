@@ -61,6 +61,7 @@ def newBlock():
     blockchain.addBlock(block)
     mineWorker = Miner(blockchain, out_q)
     mineWorker.start()
+    propagateBlock(block)
     return "Block added!", 200   
 
 @app.route('/newTransaction', methods = ['POST'])
@@ -68,6 +69,20 @@ def newTransaction():
     newTxn = Txn()
     newTxn.makeTxnFromJSON(json.loads(request.get_json()))
     blockchain.addPendingTxn(newTxn)
+
+def propagateBlock(block):
+    data = block.toByteArray()
+    index = block.index
+    for peer in peers:
+        req = requests.post(
+            url=peer+'/newBlock',
+            data=data,
+            headers={'Content-Type': 'application/octet-stream'}
+            )
+        if req.status_code == 200:
+            print(f"[SUCCESS] Block {index} sent to {peer}")
+        else:
+            print(f"[WARNING] Peer {peer} responded {req.status_code}")     
 
 if __name__ == '__main__':
     app.run(debug = True, port = 8787)

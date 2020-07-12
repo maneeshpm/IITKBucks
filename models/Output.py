@@ -2,7 +2,7 @@ class Output:
     def __init__(self, noCoins, pubKey):
         self.noCoins = noCoins
         self.pubKey = pubKey
-        self. lenPubKey = len(self.pubKey)
+        self.lenPubKey = len(self.pubKey)
 
     def getOutputBytes(self):
         return (self.noCoins.to_bytes(8, byteorder = 'big')

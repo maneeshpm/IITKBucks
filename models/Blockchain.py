@@ -13,6 +13,7 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.unusedOP = {}
+        self.unusedOPMap = {}
         self.pendingTxn = {}
         self.currentTarget = None
         self.numBlocks = 0
@@ -109,9 +110,9 @@ class Blockchain:
                 break
             block = Block()
             block.blockFromByteArray(r.content)
-            self.isBlockValid(block)
-            self.processBlock(block)
-            self.addBlock(block)
+            if self.isBlockValid(block):
+                self.processBlock(block)
+                self.addBlock(block)
 
     def buildPendingTxns(self, peer):
         peerGetPendingTxnURL = peer+ '/getPendingTransactions'
@@ -145,7 +146,7 @@ class Blockchain:
         fee = 0
         blockeReward = 0
         maxSize = 116
-        target = 0x0000F00000000000000000000000000000000000000000000000000000000000
+        target = self.currentTarget
         index = self.numBlocks + 1
         parentHash = self.chain[-1].parentHash
         txnToMine = []
