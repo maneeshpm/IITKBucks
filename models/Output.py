@@ -11,9 +11,6 @@ class Output:
         +self.lenPubKey.to_bytes(4,byteorder = 'big')
         +self.pubKey)
     
-    def getOPHash(self):
-        return sha256(self.getOutputBytes()).digest()
-
     def __str__(self):
         pr = ("\t\tNumber of coins: {}\n".format(self.noCoins)
         +"\t\tLength of public key: {}\n".format(self.lenPubKey)

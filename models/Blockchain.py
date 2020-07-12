@@ -17,6 +17,7 @@ class Blockchain:
         self.pendingTxn = {}
         self.currentTarget = None
         self.numBlocks = 0
+        self.aliasMap = {}
 
     def addBlock(self, block):
         self.processBlock(block)
@@ -86,31 +87,27 @@ class Blockchain:
     def addPendingTxn(self, txn):
         self.pendingTxn[txn.getTxnHash()] = txn
     
-    def removeOPFromUnusedOPMap(self, op):
+    def removeOPFromUnusedOPMap(self, pubKey, txnIDIndexPair):
         try:
-            del self.unusedOPMap[op.pubKey][op.getOPHash()]
+            self.unusedOPMap[pubKey].remove(txnIDIndexPair)
         except:
             print("Output does not exist")
 
-    def addOPToUnusedOPMap(self, op):
-        if op.pubKey in self.unusedOPMap:
-            self.unusedOPMap[op.pubKey][op.getOPHash()] = op
-        else:
-            self.unusedOPMap[op.pubKey] = {}
-            self.unusedOPMap[op.pubKey][op.getOPHash()] = op        
-        self.unusedOPMap[op.pubKey][op.getOPHash()] = op
+    def addOPToUnusedOPMap(self, pubKey, txnIdIndexPair):
+        if pubKey not in self.unusedOPMap:
+            self.unusedOPMap[pubKey] = []
+        self.unusedOPMap[pubKey].append(txnIdIndexPair)
     
     def processBlock(self, block):
         for txn in block.txns:
-            del self.pendingTxn[txn.getTxnHash()]
-
+            del self.pendingTxn[txn.getTxnHash()] 
             for inp in txn.totInputs:
                 op = self.unusedOP[(inp.txnID, inp.opIndex)]
                 del self.unusedOP[(inp.txnID, inp.opIndex)]
-                self.removeOPFromUnusedOPMap(op)
+                self.removeOPFromUnusedOPMap(op.pubKey, (inp.txnID, inp.opIndex))
             for i in range(len(txn.totOutputs)):
                 self.unusedOP[(txn.id, i)] = txn.totOutputs[i]
-                self.addOPToUnusedOPMap(op)
+                self.addOPToUnusedOPMap(txn.totOutputs[i].pubKey, (txn.id, i))
 
     def getPendingTxnJSON(self):
         pendingTxnList = []

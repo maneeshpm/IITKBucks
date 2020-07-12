@@ -70,6 +70,45 @@ def newTransaction():
     newTxn.makeTxnFromJSON(json.loads(request.get_json()))
     blockchain.addPendingTxn(newTxn)
 
+@app.route('/addAlias', methods = ['POST'])
+def addAlias():
+    if request.json['alias'] not in blockchain.aliasMap:
+        blockchain.aliasMap[request.json['alias']] = request.json['publicKey']
+        for peer in peers:
+            req = requests.post(url = peer + '/addAlias',json=request.json)
+            if req.status_code != 200:
+                print(f"[WARNING] Status {req.status_code} received form {peer}")
+            else:
+                print(f"[SUCCESS] Sent {request.json['alias']} to {peer}")
+
+@app.route('/getPublicKey', methods = ['POST'])
+def getPublicKey():
+    if request.json['alias'] not in blockchain.aliasMap:
+        return 'Alias doesnt exist', 404
+    else:
+        return jsonify({'publicKey':blockchain.aliasMap[request.json['alias']]}), 200
+
+@app.route('/getUnusedOutput', methods = ['POST'])
+def getUnusedOutput():
+    if request.json['alias'] is None or request.json['publicKey'] is None:
+        return "Bad Request", 400
+    pubKey = None
+    if request.json['publicKey'] is not None:
+        pubKey = request.json['publicKey']
+    else if request.json['alias'] is not None:
+        pubKey = blockchain.aliasMap[request.json['alias']]
+
+    data = {}
+    data['unusedOutputs']=[]
+
+    for txnIDIndexPair in blockchain.unusedOPMap[pubKey]:
+        temp = {}
+        temp['transactionID'] = txnIDIndexPair[0]
+        temp['index'] = txnIDIndexPair[1],
+        temp['amount'] = blockchain.unusedOP[txnIDIndexPair].noCoins
+        data['unusedOutputs'].append(temp)
+     return jsonify(data), 200
+
 def propagateBlock(block):
     data = block.toByteArray()
     index = block.index
