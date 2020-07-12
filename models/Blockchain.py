@@ -19,7 +19,8 @@ class Blockchain:
         self.numBlocks = 0
 
     def addBlock(self, block):
-        self.chain.append(block)
+        self.processBlock(block)
+        self.chain.append(block.getHeaderHash())
         self.numBlocks += 1
         block.export()
 
@@ -37,7 +38,7 @@ class Blockchain:
             if (inp.txnID, inp.opIndex) not in self.unusedOP.keys():
                 return False
             
-            verifier = PKCS1_PSS.new(self.unusedOP[(inp.txnID, inp.opIndex)])
+            verifier = PKCS1_PSS.new(self.unusedOP[(inp.txnID, inp.opIndex)].pubKey)
             h = SHA256.new(inp.TxnID + int.to_bytes(inp.opIndex) + opHash)
             if not verifier.verify(h, inp.sign):
                 return False
@@ -85,14 +86,31 @@ class Blockchain:
     def addPendingTxn(self, txn):
         self.pendingTxn[txn.getTxnHash()] = txn
     
+    def removeOPFromUnusedOPMap(self, op):
+        try:
+            del self.unusedOPMap[op.pubKey][op.getOPHash()]
+        except:
+            print("Output does not exist")
+
+    def addOPToUnusedOPMap(self, op):
+        if op.pubKey in self.unusedOPMap:
+            self.unusedOPMap[op.pubKey][op.getOPHash()] = op
+        else:
+            self.unusedOPMap[op.pubKey] = {}
+            self.unusedOPMap[op.pubKey][op.getOPHash()] = op        
+        self.unusedOPMap[op.pubKey][op.getOPHash()] = op
+    
     def processBlock(self, block):
         for txn in block.txns:
             del self.pendingTxn[txn.getTxnHash()]
 
             for inp in txn.totInputs:
+                op = self.unusedOP[(inp.txnID, inp.opIndex)]
                 del self.unusedOP[(inp.txnID, inp.opIndex)]
+                self.removeOPFromUnusedOPMap(op)
             for i in range(len(txn.totOutputs)):
                 self.unusedOP[(txn.id, i)] = txn.totOutputs[i]
+                self.addOPToUnusedOPMap(op)
 
     def getPendingTxnJSON(self):
         pendingTxnList = []
@@ -111,8 +129,9 @@ class Blockchain:
             block = Block()
             block.blockFromByteArray(r.content)
             if self.isBlockValid(block):
-                self.processBlock(block)
                 self.addBlock(block)
+            else:
+                return print("Invalid Block")
 
     def buildPendingTxns(self, peer):
         peerGetPendingTxnURL = peer+ '/getPendingTransactions'

@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 class Output:
     def __init__(self, noCoins, pubKey):
         self.noCoins = noCoins
@@ -8,6 +10,9 @@ class Output:
         return (self.noCoins.to_bytes(8, byteorder = 'big')
         +self.lenPubKey.to_bytes(4,byteorder = 'big')
         +self.pubKey)
+    
+    def getOPHash(self):
+        return sha256(self.getOutputBytes()).digest()
 
     def __str__(self):
         pr = ("\t\tNumber of coins: {}\n".format(self.noCoins)
