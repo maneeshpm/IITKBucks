@@ -95,7 +95,7 @@ def getUnusedOutput():
     pubKey = None
     if request.json['publicKey'] is not None:
         pubKey = request.json['publicKey']
-    else if request.json['alias'] is not None:
+    if request.json['alias'] is not None:
         pubKey = blockchain.aliasMap[request.json['alias']]
 
     data = {}
@@ -107,7 +107,7 @@ def getUnusedOutput():
         temp['index'] = txnIDIndexPair[1],
         temp['amount'] = blockchain.unusedOP[txnIDIndexPair].noCoins
         data['unusedOutputs'].append(temp)
-     return jsonify(data), 200
+    return jsonify(data), 200
 
 def propagateBlock(block):
     data = block.toByteArray()
