@@ -4,7 +4,7 @@ import struct
 from models.Txn import Txn
 from models.Inp import Inp
 from models.Output import Output
-
+import os
 
 class Block:
     #id, index,timestamp,transactions,parenthash,target,nonce
@@ -22,10 +22,10 @@ class Block:
     def txnListFromByteArray(self, data):
         txns = []
         currOffset=0
-        noTxns = int.from_bytes(data[currOffset:currOffset+4])
+        noTxns = int.from_bytes(data[currOffset:currOffset+4], 'big')
         currOffset+=4
         for _ in range(noTxns):
-            szTxn = int.from_bytes(data[currOffset:currOffset+4])
+            szTxn = int.from_bytes(data[currOffset:currOffset+4],'big')
             currOffset+=4
             txn = Txn()
             txn.txnFromByteArray(data[currOffset:currOffset+szTxn])
@@ -34,20 +34,28 @@ class Block:
         return txns
     
     def blockFromByteArray(self, data):
-        self.index = int.from_bytes(data[:4])
-        self.parentHash = data[4:36]
-        self.blockBodyHash = data[36:68]
-        self.target = data[68:100]
-        self.timestamp = int.from_bytes(data[100:108])
-        self.nonce = int.from_bytes(data[108:116])
-        self.body = data[116:]
-        self.txns = self.txnListFromByteArray(data[116:])
+        co = 0
+        self.index = int.from_bytes(data[co:co+4],'big')
+        co+=4
+        self.parentHash = data[co:co+32]
+        co+=32
+        self.blockBodyHash = data[co:co+32]
+        co+=32
+        self.target = int.from_bytes(data[co:co+32],'big')
+        co+=32
+        self.timestamp = int.from_bytes(data[co:co+8],'big')
+        co+=8
+        self.nonce = int.from_bytes(data[co:co+8],'big')
+        co+=8
+        self.body = data[co:]
+        self.txns = self.txnListFromByteArray(data[co:])
+        self.header = data[0:116]
 
     def getHeader(self):
         if self.body == None:
-            self.body = self.txnListToByteArray
+            self.body = self.txnListToByteArray()
         if self.blockBodyHash == None:
-            self.blockBodyHash = self.getBodyHash
+            self.blockBodyHash = self.getBodyHash()
 
         header = (self.index.to_bytes(4,'big')
         + self.parentHash
@@ -64,8 +72,15 @@ class Block:
         return hashlib.sha256(self.body).digest()
 
     def blockToByteArray(self):
-        data = (self.getHeader()
-        + self.body)
+        data = self.getHeader()
+        bb = None
+        if self.body == None:
+            bb = len(self.txns).to_bytes(4, 'big')
+            for txn in self.txns:
+                bb += len(txn.txnToByteArray()).to_bytes(4,'big')
+                bb += txn.txnToByteArray()
+            self.body = bb
+        data += self.body
         return data
 
     def txnListToByteArray(self):
@@ -76,8 +91,21 @@ class Block:
         return data
     
     def export(self):
+        # print(os.getcwd())
         with open('blockchain/blocks/{}.dat'.format(self.index),'wb') as file:
             file.write(self.blockToByteArray())
+
+    def view(self):
+        print(f'contains {len(self.txns)} txns')
+        for i,txn in enumerate(self.txns):
+            print(f'\ttxn {i}, id = {txn.id.hex()}')
+            print(f'\t\tcontains {len(txn.totInput)} inputs')
+            for inp in txn.totInput:
+                print(f'\t\t\t({inp.txnID.hex()}, {inp.opIndex})')
+            print(f'\t\tcontains {len(txn.totOutput)} outputs')
+            for i, op in enumerate(txn.totOutput):
+                print(f'\t\t\t({i}, {txn.id.hex()})\n\t\t\t({op.noCoins})')
+                
 
 
     # def mine(self):

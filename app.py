@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, Response, request
 from models.Block import Block
 from models.Blockchain import Blockchain 
+from Crypto.PublicKey import RSA
 from models.Txn import Txn
 import requests
 from queue import Queue
@@ -9,16 +10,23 @@ import time
 import json
 from Miner import Miner
 
-app = Flask(__name__)
+
 
 blockchain = Blockchain()
 peers = []
 peerLimit = 5
-myNode = '127.0.0.1:8080'
-genesisURL = ''
-myPubKey = ''
+myNode = 'http://987a51s0bea7.ngrok.io'
+genesisURL = 'https://iitkbucks.pclub.in'
+myPubKey = RSA.import_key(open('public.pem').read())
 out_q = Queue()
 mineWorker = None
+peers = blockchain.initializeBlockchain(genesisURL, myNode)
+
+mineWorker = Miner(blockchain, out_q)
+mineWorker.start()
+
+
+app = Flask(__name__)
 @app.route('/')
 def home():
     return "<h3>\"Rabbit, Fire up the server!\"</h3>Thor,<br>The strongest avenger"
@@ -67,7 +75,7 @@ def newBlock():
 @app.route('/newTransaction', methods = ['POST'])
 def newTransaction():
     newTxn = Txn()
-    newTxn.makeTxnFromJSON(json.loads(request.get_json()))
+    newTxn.makeTxnFromJSON(request.get_json())
     blockchain.addPendingTxn(newTxn)
 
 @app.route('/addAlias', methods = ['POST'])
@@ -125,9 +133,9 @@ def propagateBlock(block):
 
 if __name__ == '__main__':
     app.run(debug = True, port = 8787)
-    peers = blockchain.initializeBlockchain(genesisURL, myNode)    
-    mineWorker = Miner(blockchain, out_q)
-    mineWorker.start()
+        
+    # mineWorker = Miner(blockchain, out_q)
+    # mineWorker.start()
 
 
 

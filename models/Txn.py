@@ -7,6 +7,9 @@ from models.Output import Output
 import json
 
 class Txn:
+    totInput = []
+    totOutput = []
+
     def _init_(self):
         self.id = None
         self.noInputs = 0
@@ -30,30 +33,33 @@ class Txn:
         currOffset=0
         self.noInputs = int.from_bytes(data[currOffset:currOffset+4], 'big')
         currOffset+=4
-        for _ in range(self.noInputs):
-                txnID = data[currOffset:currOffset+32]
-                currOffset+=32
-                opIndex = int.from_bytes(data[currOffset:currOffset+4], 'big')
-                currOffset+=4
-                signLen = int.from_bytes(data[currOffset:currOffset+4], 'big')
-                currOffset+=4
-                sign = data[currOffset:currOffset+signLen]
-                currOffset+=signLen
-                inp = Inp(txnID, opIndex, sign)
-                self.totInput.append(inp)
-
+        inputs=[]
+        for i in range(self.noInputs):
+            txnID = data[currOffset:currOffset+32]
+            currOffset+=32
+            opIndex = int.from_bytes(data[currOffset:currOffset+4], 'big')
+            currOffset+=4
+            signLen = int.from_bytes(data[currOffset:currOffset+4], 'big')
+            currOffset+=4
+            sign = data[currOffset:currOffset+signLen]
+            currOffset+=signLen
+            inp = Inp(txnID, opIndex, sign)
+            inputs.append(inp)
+        self.totInput=inputs
+        outputs = []
         self.noOutputs = int.from_bytes(data[currOffset:currOffset+4], 'big')
         currOffset+=4
-        for _ in range(self.noOutputs):
-                noCoins = int.from_bytes(data[currOffset:currOffset+8], 'big')
-                currOffset+=8
-                lenPubKey = int.from_bytes(data[currOffset:currOffset+4], 'big')
-                currOffset+=4
-                pubKey = data[currOffset:currOffset+lenPubKey]
-                currOffset+=lenPubKey
-                op = Output(noCoins, pubKey)
-                self.totOutput.append(op)
-        self.id = bytes.fromhex(self.getTxnHash())
+        for i in range(self.noOutputs):
+            noCoins = int.from_bytes(data[currOffset:currOffset+8], 'big')
+            currOffset+=8
+            lenPubKey = int.from_bytes(data[currOffset:currOffset+4], 'big')
+            currOffset+=4
+            pubKey = data[currOffset:currOffset+lenPubKey]
+            currOffset+=lenPubKey
+            op = Output(noCoins, pubKey)
+            outputs.append(op)
+        self.totOutput = outputs
+        self.id = self.getTxnHash()
 
     def getOutputHash(self):
         data = b''
